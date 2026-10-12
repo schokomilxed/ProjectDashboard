@@ -87,3 +87,15 @@ test('row CRUD and pagination with database token', async () => {
   await client.deleteRow(table.id, row.id);
   assert.equal((await client.listRows(table.id)).count, 0);
 });
+
+test('tokenViaProxy sends no Authorization header for row requests', async () => {
+  const client = new BaserowClient({ url: mock.url, tokenViaProxy: true });
+  assert.equal(client.hasToken, true);
+  await assert.rejects(client.listRows(1), (e) => e.status === 401); // mock has no proxy
+  assert.equal(mock.state.requests.at(-1).auth, '');
+});
+
+test('readConfig reads BASEROW_TOKEN_VIA_PROXY', () => {
+  assert.equal(readConfig({ BASEROW_URL: 'https://x', BASEROW_TOKEN_VIA_PROXY: '1' }).tokenViaProxy, true);
+  assert.equal(readConfig({ BASEROW_URL: 'https://x' }).tokenViaProxy, false);
+});

@@ -5,6 +5,11 @@
  * - Database token (`Authorization: Token …`): row CRUD only, used at runtime.
  * - JWT from email/password (`Authorization: JWT …`): needed for schema work
  *   (workspaces, databases, tables, fields), used by the setup script.
+ *
+ * With `tokenViaProxy`, an outbound proxy adds the database token (e.g. a
+ * Claude Code network secret). The client then sends no Authorization header
+ * itself. Such a proxy overwrites every Authorization header, so JWT login
+ * does not work through it.
  */
 
 const BATCH_LIMIT = 200; // Baserow's maximum rows per batch request
@@ -31,10 +36,11 @@ function chunk(list, size) {
 }
 
 export class BaserowClient {
-  constructor({ url, token, email, password, fetch = globalThis.fetch, timeoutMs = 20000, retries = 3 }) {
+  constructor({ url, token, tokenViaProxy = false, email, password, fetch = globalThis.fetch, timeoutMs = 20000, retries = 3 }) {
     if (!url) throw new Error('BaserowClient: url fehlt');
     this.url = url;
     this.token = token;
+    this.tokenViaProxy = tokenViaProxy;
     this.email = email;
     this.password = password;
     this.fetch = fetch;
@@ -44,7 +50,7 @@ export class BaserowClient {
   }
 
   get hasToken() {
-    return Boolean(this.token);
+    return Boolean(this.token) || this.tokenViaProxy;
   }
 
   get hasLogin() {
@@ -55,7 +61,8 @@ export class BaserowClient {
 
   async #authHeader(auth) {
     if (auth === 'none') return {};
-    if (auth === 'token' || (auth === 'auto' && this.token)) {
+    if (auth === 'token' || (auth === 'auto' && this.hasToken)) {
+      if (this.tokenViaProxy) return {};
       if (!this.token) throw new BaserowError('Kein Datenbank-Token konfiguriert (BASEROW_DATABASE_TOKEN).');
       return { Authorization: `Token ${this.token}` };
     }

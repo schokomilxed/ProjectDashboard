@@ -32,6 +32,8 @@ export function readConfig(env = process.env) {
   return {
     url,
     token: env.BASEROW_DATABASE_TOKEN || undefined,
+    // The token is added by an outbound proxy (Claude Code network secret).
+    tokenViaProxy: ['1', 'true', 'ja'].includes(String(env.BASEROW_TOKEN_VIA_PROXY ?? '').toLowerCase()),
     email: env.BASEROW_EMAIL || undefined,
     password: env.BASEROW_PASSWORD || undefined,
     workspaceId: optionalInt(env.BASEROW_WORKSPACE_ID, 'BASEROW_WORKSPACE_ID'),

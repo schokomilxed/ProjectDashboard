@@ -31,7 +31,10 @@ Voraussetzung: Node.js 20.12 oder neuer. Weitere Pakete braucht es nicht.
    wieder aus `.env` entfernen – die App selbst arbeitet nur mit dem Token.
 
 In einer Claude-Code-Cloud-Umgebung braucht Node `NODE_USE_ENV_PROXY=1`, damit die Anfragen
-über den Proxy der Umgebung laufen.
+über den Proxy der Umgebung laufen. Liegt das Token dort als „Network secret“ (Header
+`Authorization`, Prefix `Token`, Host `api.baserow.io`), zusätzlich `BASEROW_TOKEN_VIA_PROXY=1`
+setzen. Der Proxy überschreibt dann jeden Anmelde-Header; `npm run setup` mit E-Mail/Passwort
+funktioniert in dieser Umgebung erst wieder, wenn das Secret entfernt ist.
 
 Eigenes oder internes Zertifikat? Dann vor den Befehlen
 `export NODE_EXTRA_CA_CERTS=/pfad/zur/ca.pem` setzen.

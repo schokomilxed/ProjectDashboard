@@ -32,8 +32,11 @@ async function main() {
   console.log('\n2. Datenbank-Token');
   if (!client.hasToken) {
     info('nicht gesetzt (BASEROW_DATABASE_TOKEN) – für den Betrieb der App nötig');
+    if (await client.request('GET', '/api/database/tokens/check/', { auth: 'none' }).then(() => true, () => false)) {
+      info('Ein Proxy hängt aber bereits ein gültiges Token an. Setze BASEROW_TOKEN_VIA_PROXY=1.');
+    }
   } else if (await client.checkToken()) {
-    ok('gültig');
+    ok(client.tokenViaProxy ? 'gültig (vom Proxy angehängt)' : 'gültig');
   } else {
     fail('ungültig oder abgelaufen');
     problems++;
