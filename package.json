@@ -1,0 +1,16 @@
+{
+  "name": "projectdashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Steckbriefe für die Ausstellungsplanung – Datenhaltung in Baserow",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "check": "node scripts/check-connection.js",
+    "setup": "node scripts/setup-schema.js",
+    "setup:dry": "node scripts/setup-schema.js --dry-run",
+    "test": "node --test test/*.test.js"
+  }
+}
