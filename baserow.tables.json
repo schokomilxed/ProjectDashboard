@@ -1,0 +1,151 @@
+{
+  "databaseId": 562590,
+  "databaseName": "ProjectDashboard",
+  "tables": {
+    "projekte": {
+      "id": 1257615,
+      "name": "Projekte",
+      "fields": {
+        "Projektnummer": 11517793,
+        "Kürzel": 11517803,
+        "Name": 11517804,
+        "Auftraggeber": 11517805,
+        "Phase": 11517806,
+        "Status": 11517807,
+        "Angelegt von": 11517808,
+        "Angelegt am": 11517809,
+        "Geändert am": 11517810
+      }
+    },
+    "ebenen": {
+      "id": 1257616,
+      "name": "Ebenen",
+      "fields": {
+        "OZ": 11517794,
+        "Projekt": 11517812,
+        "Nummer": 11517814,
+        "Name": 11517815
+      }
+    },
+    "themen": {
+      "id": 1257617,
+      "name": "Themen",
+      "fields": {
+        "OZ": 11517795,
+        "Ebene": 11517816,
+        "Nummer": 11517818,
+        "Name": 11517819
+      }
+    },
+    "elemente": {
+      "id": 1257618,
+      "name": "Elemente",
+      "fields": {
+        "OZ": 11517796,
+        "Projekt": 11517820,
+        "Thema": 11517822,
+        "Elementnummer": 11517824,
+        "Typ": 11517825,
+        "Name": 11517826,
+        "Raum, Bereich": 11517827,
+        "Idee, Content": 11517828,
+        "Skizze": 11517829,
+        "Funktion, Interaktion": 11517830,
+        "Artefakt ja/nein": 11517831,
+        "Artefakt": 11517832,
+        "Bau, Material, wichtige Details": 11517833,
+        "Medien-Hardware ja/nein": 11517835,
+        "Medien-Hardware": 11517836,
+        "Medien-Software ja/nein": 11517837,
+        "Medien-Software": 11517838,
+        "Licht ja/nein": 11517839,
+        "Licht": 11517840,
+        "Grafik ja/nein": 11517841,
+        "Grafik": 11517842,
+        "Steuerung ja/nein": 11517843,
+        "Steuerung": 11517844,
+        "Schnittstelle Gebäude": 11517845,
+        "Wer übernimmt was": 11517846,
+        "Plandatei": 11517847,
+        "Version": 11517848,
+        "Archiviert": 11517849,
+        "Geändert von": 11517850,
+        "Geändert am": 11517851
+      }
+    },
+    "technikraeume": {
+      "id": 1257619,
+      "name": "Technikräume",
+      "fields": {
+        "OZ": 11517797,
+        "Ebene": 11517852,
+        "Nummer": 11517854,
+        "Bezeichnung": 11517855
+      }
+    },
+    "positionen": {
+      "id": 1257620,
+      "name": "Positionen",
+      "fields": {
+        "OZ": 11517798,
+        "Element": 11517856,
+        "Technikraum": 11517858,
+        "Gewerk": 11517860,
+        "Positionsnummer": 11517861,
+        "Bezeichnung": 11517862,
+        "Typ, Fabrikat, technische Daten": 11517863,
+        "Menge": 11517864,
+        "Einheit": 11517865,
+        "Bemerkung": 11517866,
+        "Gelöscht": 11517867,
+        "Geändert von": 11517868,
+        "Geändert am": 11517869
+      }
+    },
+    "team": {
+      "id": 1257621,
+      "name": "Team",
+      "fields": {
+        "Name": 11517799,
+        "Projekt": 11517870,
+        "Benutzer-ID": 11517872,
+        "E-Mail": 11517873,
+        "Rolle": 11517874,
+        "Gewerke": 11517875
+      }
+    },
+    "admins": {
+      "id": 1257622,
+      "name": "Admins",
+      "fields": {
+        "Name": 11517800,
+        "Benutzer-ID": 11517876,
+        "E-Mail": 11517877
+      }
+    },
+    "verlauf": {
+      "id": 1257623,
+      "name": "Verlauf",
+      "fields": {
+        "Eintrag": 11517801,
+        "Element": 11517878,
+        "Zeitpunkt": 11517880,
+        "Person": 11517881,
+        "Version": 11517882,
+        "Änderungen": 11517883
+      }
+    },
+    "staende": {
+      "id": 1257624,
+      "name": "Stände",
+      "fields": {
+        "Bezeichnung": 11517802,
+        "Projekt": 11517884,
+        "Phase": 11517886,
+        "Festgeschrieben am": 11517887,
+        "Festgeschrieben von": 11517888,
+        "Daten": 11517889
+      }
+    }
+  }
+}

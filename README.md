@@ -22,13 +22,16 @@ Voraussetzung: Node.js 20.12 oder neuer. Weitere Pakete braucht es nicht.
    npm run setup
    ```
    Das legt die Datenbank „Steckbriefe“ (oder `BASEROW_DATABASE_NAME`) mit allen Tabellen an
-   und schreibt die IDs nach `baserow.tables.json`. Mehrfaches Ausführen ist unbedenklich:
+   und schreibt die IDs nach `baserow.tables.json` (wird mit eingecheckt, die App braucht sie). Mehrfaches Ausführen ist unbedenklich:
    Vorhandenes bleibt, wie es ist, nur Fehlendes kommt dazu. Abweichende Feldtypen werden
    gemeldet, aber nicht geändert.
 4. In Baserow unter **Einstellungen → Datenbank-Tokens** ein Token für diese Datenbank
    anlegen (Rechte: anlegen, lesen, ändern, löschen), als `BASEROW_DATABASE_TOKEN` eintragen
    und `npm run check` erneut ausführen. Danach `BASEROW_EMAIL` und `BASEROW_PASSWORD`
    wieder aus `.env` entfernen – die App selbst arbeitet nur mit dem Token.
+
+In einer Claude-Code-Cloud-Umgebung braucht Node `NODE_USE_ENV_PROXY=1`, damit die Anfragen
+über den Proxy der Umgebung laufen.
 
 Eigenes oder internes Zertifikat? Dann vor den Befehlen
 `export NODE_EXTRA_CA_CERTS=/pfad/zur/ca.pem` setzen.
