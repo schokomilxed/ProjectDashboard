@@ -25,6 +25,9 @@ async function main() {
   } catch (error) {
     fail(error.message);
     info('Stimmt die Adresse? Bei eigenem Zertifikat: NODE_EXTRA_CA_CERTS=/pfad/zur/ca.pem setzen.');
+    if ((process.env.HTTPS_PROXY || process.env.https_proxy) && !process.env.NODE_USE_ENV_PROXY) {
+      info('Es ist ein Proxy gesetzt, den Node nicht benutzt: NODE_USE_ENV_PROXY=1 setzen.');
+    }
     process.exitCode = 1;
     return;
   }
