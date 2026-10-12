@@ -1,7 +1,7 @@
 # ProjectDashboard – Steckbriefe Ausstellungsplanung
 
-Datenhaltung der Steckbrief-App in einer eigenen [Baserow](https://baserow.io)-Installation.
-Dieser erste Baustein stellt die Verbindung her und legt die Tabellen an. Die Oberfläche folgt später.
+Steckbrief-App auf [Baserow](https://baserow.io): Datenhaltung in einer Baserow-Datenbank,
+Oberfläche als Anwendung im Baserow Application Builder. Beides wird per Skript angelegt.
 
 Voraussetzung: Node.js 20.12 oder neuer. Weitere Pakete braucht es nicht.
 
@@ -39,6 +39,48 @@ funktioniert in dieser Umgebung erst wieder, wenn das Secret entfernt ist.
 Eigenes oder internes Zertifikat? Dann vor den Befehlen
 `export NODE_EXTRA_CA_CERTS=/pfad/zur/ca.pem` setzen.
 
+## Anwendung „Steckbriefe“ (Application Builder)
+
+Erste Ausbaustufe: Anmeldung mit Rollen, Seiten „Projekte“ und „Elemente“ mit Eingabemasken.
+
+1. Konten anlegen (Tabelle „Benutzer“, Schlüssel ist die E-Mail):
+   ```sh
+   npm run benutzer -- --email name@atelier-brueckner.com --name "Vorname Name" --rolle ATB
+   ```
+   Ohne `--passwort` wird für neue Konten ein Passwort erzeugt und einmal angezeigt. Ändern
+   lässt es sich jederzeit direkt im Feld „Passwort“ der Tabelle. Weitere Optionen:
+   `--gewerke Licht,Grafik`, `--inaktiv`.
+2. Anwendung aufbauen:
+   ```sh
+   npm run app            # legt „Steckbriefe“ an, wenn es sie noch nicht gibt
+   npm run app -- --neu   # löscht die vorhandene und baut sie neu auf
+   ```
+   Die IDs stehen danach in `baserow.app.json`. Achtung: `--neu` verwirft alles, was im
+   Editor von Hand an der Anwendung geändert wurde.
+3. In Baserow die Anwendung öffnen und über **Vorschau** testen. Für eine eigene Adresse unter
+   **Einstellungen → Domains** eine Domain anlegen und veröffentlichen.
+
+| Seite      | Pfad           | Inhalt                                                                  |
+| ---------- | -------------- | ----------------------------------------------------------------------- |
+| Anmeldung  | `/anmeldung`   | E-Mail und Passwort aus der Tabelle „Benutzer“, danach weiter zu Projekte |
+| Projekte   | `/projekte`    | Liste aller Projekte, Formular „Neues Projekt“                          |
+| Projekt    | `/projekt/:id` | Projekt bearbeiten                                                      |
+| Elemente   | `/elemente`    | Liste nach OZ, mit `?projekt=<id>` gefiltert; Formular „Neues Element“  |
+| Element    | `/element/:id` | Steckbrief: Eingabemaske mit Kopf, Idee, Gewerken, Bau und Schnittstellen |
+
+Rollen (Feld „Rolle“ in „Benutzer“):
+
+| Rolle      | darf                                                       |
+| ---------- | ---------------------------------------------------------- |
+| Admin      | alles, als einzige Rolle neue Projekte anlegen             |
+| ATB        | Projekte und Elemente bearbeiten, Elemente anlegen         |
+| Fachplaner | lesen (Steckbrief als Leseansicht); Positionen folgen      |
+| Gast       | lesen                                                      |
+
+Noch offen in dieser Stufe: Skizzen hochladen, Ebenen/Themen und automatische OZ, Versionszähler
+und Verlauf beim Speichern, Projektzuordnung über „Team“, Sperre über das Feld „Aktiv“ (bis dahin
+ein Konto über Rolle oder Passwort sperren).
+
 ## Tabellen
 
 | Tabelle      | Hauptfeld       | Inhalt                                                       |
@@ -51,6 +93,7 @@ Eigenes oder internes Zertifikat? Dann vor den Befehlen
 | Positionen   | OZ `…0030.010`  | Positionen der Fachplaner je Element/Technikraum und Gewerk  |
 | Team         | Name            | Projektleitung, Mitarbeitende, Fachplaner mit Gewerken       |
 | Admins       | Name            | Personen mit Admin-Rechten                                   |
+| Benutzer     | Name            | Konten der App: E-Mail, Passwort, Rolle, Gewerke, aktiv      |
 | Verlauf      | Eintrag         | Änderungshistorie je Element (vorher/jetzt als JSON)         |
 | Stände       | Bezeichnung     | festgeschriebene Projektstände als JSON-Datei                |
 
@@ -61,4 +104,7 @@ Das vollständige Schema steht in `src/baserow/schema.js`.
 - `src/baserow/client.js` – Baserow-Client (Zeilen über Token, Schema über Anmeldung,
   Seitenabruf, Stapelverarbeitung, Wiederholung bei kurzen Ausfällen)
 - `src/baserow/setup.js` – Abgleich der Datenbank mit dem Schema
-- `npm test` – Tests gegen eine nachgebildete Baserow-API (`test/mock-baserow.js`)
+- `src/baserow/app.js` – Aufbau der Anwendung im Application Builder (Hinweise zur
+  Builder-API stehen oben in der Datei)
+- `npm test` – Tests gegen eine nachgebildete Baserow-API (`test/mock-baserow.js`) und
+  Prüfung der Aufrufe beim App-Aufbau

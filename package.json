@@ -11,6 +11,8 @@
     "check": "node scripts/check-connection.js",
     "setup": "node scripts/setup-schema.js",
     "setup:dry": "node scripts/setup-schema.js --dry-run",
+    "app": "node scripts/setup-app.js",
+    "benutzer": "node scripts/add-user.js",
     "test": "node --test test/*.test.js"
   }
 }

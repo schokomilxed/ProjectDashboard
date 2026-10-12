@@ -1,0 +1,28 @@
+{
+  "id": 590587,
+  "name": "Steckbriefe",
+  "integrationId": 243339,
+  "userSourceId": 114593,
+  "pages": {
+    "anmeldung": {
+      "id": 1408194,
+      "path": "/anmeldung"
+    },
+    "projekte": {
+      "id": 1408195,
+      "path": "/projekte"
+    },
+    "projekt": {
+      "id": 1408196,
+      "path": "/projekt/:id"
+    },
+    "elemente": {
+      "id": 1408197,
+      "path": "/elemente"
+    },
+    "element": {
+      "id": 1408198,
+      "path": "/element/:id"
+    }
+  }
+}
