@@ -29,6 +29,7 @@ const select = (name, options) => ({ name, type: 'single_select', select_options
 const multiSelect = (name, options) => ({ name, type: 'multiple_select', select_options: options });
 const file = (name) => ({ name, type: 'file' });
 const email = (name) => ({ name, type: 'email' });
+const password = (name) => ({ name, type: 'password' });
 const createdOn = (name) => ({ name, type: 'created_on', date_include_time: true, date_format: 'EU', date_time_format: '24' });
 const lastModified = (name) => ({ name, type: 'last_modified', date_include_time: true, date_format: 'EU', date_time_format: '24' });
 
@@ -126,11 +127,31 @@ export const TABLES = [
     ],
   },
   {
+    // Accounts for the Baserow application (user source). Rolle drives which
+    // pages and elements a person sees; later replaceable by Entra ID (OIDC).
+    key: 'benutzer',
+    name: 'Benutzer',
+    primary: 'Name',
+    fields: [
+      email('E-Mail'),
+      password('Passwort'),
+      select('Rolle', [
+        { value: 'Admin', color: 'dark-blue' },
+        { value: 'ATB', color: 'blue' },
+        { value: 'Fachplaner', color: 'light-gray' },
+        { value: 'Gast', color: 'light-gray' },
+      ]),
+      multiSelect('Gewerke', GEWERKE),
+      bool('Aktiv'),
+    ],
+  },
+  {
     key: 'team',
     name: 'Team',
     primary: 'Name',
     fields: [
       link('Projekt', 'projekte'),
+      link('Benutzer', 'benutzer'),
       text('Benutzer-ID'), // later: Entra ID object id
       email('E-Mail'),
       select('Rolle', [
