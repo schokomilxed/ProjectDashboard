@@ -102,12 +102,25 @@
         "Geändert am": 11517869
       }
     },
+    "benutzer": {
+      "id": 1257661,
+      "name": "Benutzer",
+      "fields": {
+        "Name": 11518640,
+        "E-Mail": 11518641,
+        "Passwort": 11518642,
+        "Rolle": 11518643,
+        "Gewerke": 11518644,
+        "Aktiv": 11518645
+      }
+    },
     "team": {
       "id": 1257621,
       "name": "Team",
       "fields": {
         "Name": 11517799,
         "Projekt": 11517870,
+        "Benutzer": 11518646,
         "Benutzer-ID": 11517872,
         "E-Mail": 11517873,
         "Rolle": 11517874,
