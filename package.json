@@ -13,6 +13,7 @@
     "setup:dry": "node scripts/setup-schema.js --dry-run",
     "app": "node scripts/setup-app.js",
     "benutzer": "node scripts/add-user.js",
+    "beispieldaten": "node scripts/seed-demo.js",
     "test": "node --test test/*.test.js"
   }
 }

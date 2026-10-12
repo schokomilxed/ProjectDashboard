@@ -57,7 +57,15 @@ Erste Ausbaustufe: Anmeldung mit Rollen, Seiten „Projekte“ und „Elemente�
    ```
    Die IDs stehen danach in `baserow.app.json`. Achtung: `--neu` verwirft alles, was im
    Editor von Hand an der Anwendung geändert wurde.
-3. In Baserow die Anwendung öffnen und über **Vorschau** testen. Für eine eigene Adresse unter
+3. Optional Beispieldaten zum Ausprobieren (3 Projekte, 18 Elemente mit Positionen, Demo-Konten
+   für jede Rolle unter `@demo.example.com`):
+   ```sh
+   npm run beispieldaten               # einmalig anlegen
+   npm run beispieldaten -- --neu      # neu anlegen (neues Demo-Passwort)
+   npm run beispieldaten -- --loeschen # alles wieder entfernen
+   ```
+   Beispielprojekte haben „DEMO-“ in der Projektnummer; nur sie und die Demo-Konten werden gelöscht.
+4. In Baserow die Anwendung öffnen und über **Vorschau** testen. Für eine eigene Adresse unter
    **Einstellungen → Domains** eine Domain anlegen und veröffentlichen.
 
 | Seite      | Pfad           | Inhalt                                                                  |
