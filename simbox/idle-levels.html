@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sim.Box Idle Levels</title>
+<!--
+  Sim.Box – Idle-Modus: die sechs Stufen des automatisierten Fahrens (SAE J3016), DE/EN.
+  Bühne: 6880 × 1440 px = 4 × 2 Bildschirme à 1720 × 720 px.
+  Fließtext bleibt immer innerhalb eines Bildschirms, nur große Display-Typo läuft über die Stöße.
+
+  URL-Parameter:
+    ?grid=1      Bildschirmraster (Stöße) einblenden
+    ?level=3     mit Level 3 starten (intro = Einstieg)
+    ?offset=8    Start um n Sekunden verzögern (z. B. damit die zweite Seite versetzt läuft)
+    ?speed=1.5   schneller / langsamer abspielen
+  Taste G schaltet das Raster um.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;500;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07080b;
+    --fg: #f4f2ee;
+    --dim: #8b8d94;
+    --line: rgba(244, 242, 238, .14);
+    --accent: #ff6b4a;
+    --display: "Barlow Condensed", "DIN Condensed", "Arial Narrow", sans-serif;
+    --text: "Barlow", "DIN", "Helvetica Neue", Arial, sans-serif;
+  }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: grid; place-items: center; }
+
+  #stage {
+    position: relative; width: 6880px; height: 1440px; flex: none;
+    background: var(--bg); color: var(--fg); overflow: hidden;
+    transform-origin: 0 0; position: absolute; left: 0; top: 0;
+    font-family: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  #glow {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(60% 120% at var(--gx, 20%) 50%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%);
+    transition: background 2s;
+  }
+  .scene { position: absolute; inset: 0; }
+
+  /* Text-Element: pos > drift > mask > inner */
+  .pos { position: absolute; white-space: nowrap; }
+  .pos.box { display: flex; }
+  .mask { display: block; overflow: hidden; padding: .04em .02em .1em; margin: -.04em -.02em -.1em; }
+  .mask.free { overflow: visible; }
+  .inner { display: block; will-change: transform, opacity, clip-path; }
+  .inner .ch { display: inline-block; will-change: transform; }
+  .inner .sp { display: inline-block; width: .22em; }
+
+  .display { font-family: var(--display); line-height: .86; letter-spacing: -.01em; text-transform: uppercase; }
+  .outline { color: transparent; -webkit-text-stroke: var(--stroke, 4px) var(--fg); }
+  .outline.acc { color: transparent; -webkit-text-stroke-color: var(--accent); }
+  .acc { color: var(--accent); }
+  .dim { color: var(--dim); }
+  .kicker { font-family: var(--text); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+  .para { white-space: normal; font-family: var(--text); font-weight: 500; line-height: 1.22; letter-spacing: -.005em; }
+
+  /* Fortschritt unten */
+  #progress { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; display: flex; pointer-events: none; }
+  #progress .seg { position: relative; flex: 1; border-top: 3px solid var(--line); }
+  #progress .seg .fill { position: absolute; left: 0; top: -3px; height: 3px; width: 0; background: var(--accent); }
+  #progress .seg span {
+    position: absolute; left: 110px; top: 14px; font: 600 26px/1 var(--text);
+    letter-spacing: .14em; text-transform: uppercase; color: var(--dim); transition: color .6s;
+  }
+  #progress .seg.on span { color: var(--fg); }
+  #progress .seg.done .fill { width: 100%; opacity: .35; }
+
+  /* Bildschirmraster (Debug) */
+  #grid { position: absolute; inset: 0; pointer-events: none; display: none; z-index: 10;
+    background:
+      linear-gradient(90deg, transparent 1716px, #f0f 1716px, #f0f 1724px, transparent 1724px) 0 0 / 1720px 100%,
+      linear-gradient(transparent 716px, #f0f 716px, #f0f 724px, transparent 724px) 0 0 / 100% 1440px; }
+  #grid.on { display: block; }
+  #grid i { position: absolute; width: 1720px; height: 720px; outline: 1px dashed rgba(255,0,255,.5); outline-offset: -110px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="glow"></div>
+  <div id="scenes"></div>
+  <div id="progress"></div>
+  <div id="grid"></div>
+</div>
+
+<script>
+(() => {
+  // ───────────────────────── Raster ─────────────────────────
+  const W = 6880, H = 1440, TW = 1720, TH = 720, M = 110;
+  const col = c => c * TW;
+
+  // ───────────────────────── Inhalte ─────────────────────────
+  const LEVELS = [
+    {
+      n: 0, color: '#ff5a3c',
+      de: 'Keine Automatisierung', en: 'No Automation',
+      keyEn: 'Hands on', keyDe: 'Hände dran',
+      textDe: 'Der Mensch lenkt, bremst und beschleunigt selbst. Systeme warnen höchstens – etwa beim Verlassen der Spur oder vor dem toten Winkel.',
+      textEn: 'The human steers, brakes and accelerates. Systems may warn at most – for example of lane departure or a car in the blind spot.',
+      driverDe: 'Der Mensch', driverEn: 'The human', driverNote: 'immer · always',
+      exDe: 'Spurverlassenswarnung · Totwinkelwarner', exEn: 'Lane departure warning · Blind spot alert',
+      body: [1, 1, 1, 1]
+    },
+    {
+      n: 1, color: '#ff8a3d',
+      de: 'Assistiertes Fahren', en: 'Driver Assistance',
+      keyEn: 'Feet off', keyDe: 'Füße weg',
+      textDe: 'Ein System übernimmt entweder das Lenken oder das Bremsen und Beschleunigen. Der Mensch fährt und behält alles im Blick.',
+      textEn: 'A system handles either steering or braking and accelerating. The human drives and keeps watching.',
+      driverDe: 'Der Mensch', driverEn: 'The human', driverNote: 'mit Unterstützung · with support',
+      exDe: 'Abstandsregeltempomat · Spurhalteassistent', exEn: 'Adaptive cruise control · Lane keeping assist',
+      body: [0, 1, 1, 1]
+    },
+    {
+      n: 2, color: '#ffc93d',
+      de: 'Teilautomatisierung', en: 'Partial Automation',
+      keyEn: 'Hands off', keyDe: 'Hände weg',
+      textDe: 'Das System lenkt, bremst und beschleunigt gleichzeitig. Der Mensch muss es aber ständig überwachen und jederzeit eingreifen können.',
+      textEn: 'The system steers, brakes and accelerates at the same time. But the human must monitor it constantly and be ready to take over.',
+      driverDe: 'Der Mensch', driverEn: 'The human', driverNote: 'überwacht ständig · monitors constantly',
+      exDe: 'Stauassistent · Autobahnassistent', exEn: 'Traffic jam assist · Highway assist',
+      body: [0, 0, 1, 1]
+    },
+    {
+      n: 3, color: '#b9ef4f',
+      de: 'Bedingte Automatisierung', en: 'Conditional Automation',
+      keyEn: 'Eyes off', keyDe: 'Augen weg',
+      textDe: 'In festgelegten Situationen fährt das Auto selbst. Der Mensch darf sich abwenden, muss aber auf Aufforderung übernehmen.',
+      textEn: 'In defined situations the car drives itself. The human may look away, but must take over when asked to.',
+      driverDe: 'Das System', driverEn: 'The system', driverNote: 'Mensch auf Abruf · human on standby',
+      exDe: 'Staupilot auf der Autobahn', exEn: 'Traffic jam pilot on the motorway',
+      body: [0, 0, 0, 1]
+    },
+    {
+      n: 4, color: '#3fe0c5',
+      de: 'Hochautomatisierung', en: 'High Automation',
+      keyEn: 'Mind off', keyDe: 'Kopf frei',
+      textDe: 'In einem festgelegten Einsatzbereich fährt das Fahrzeug vollständig selbst – auch in Notsituationen. Niemand muss eingreifen.',
+      textEn: 'Within a defined operating area the vehicle drives entirely on its own – even in emergencies. Nobody has to intervene.',
+      driverDe: 'Das System', driverEn: 'The system', driverNote: 'im Einsatzbereich · within its domain',
+      exDe: 'Robotaxi im Stadtgebiet · Fahrerloses Parken', exEn: 'Robotaxi in a city zone · Driverless parking',
+      body: [0, 0, 0, 0]
+    },
+    {
+      n: 5, color: '#3fa9ff',
+      de: 'Vollautomatisierung', en: 'Full Automation',
+      keyEn: 'Driver off', keyDe: 'Ohne Fahrer',
+      textDe: 'Überall, jederzeit, bei jedem Wetter. Lenkrad und Pedale werden überflüssig – alle an Bord sind Passagiere.',
+      textEn: 'Anywhere, anytime, in any weather. Steering wheel and pedals become optional – everyone on board is a passenger.',
+      driverDe: 'Das System', driverEn: 'The system', driverNote: 'überall · everywhere',
+      exDe: 'Vision – noch nicht auf der Straße', exEn: 'Vision – not yet on the road',
+      body: [0, 0, 0, 0]
+    }
+  ];
+  const BODY = [['Füße', 'Feet'], ['Hände', 'Hands'], ['Augen', 'Eyes'], ['Kopf', 'Mind']];
+
+  // ───────────────────────── Parameter ─────────────────────────
+  const qs = new URLSearchParams(location.search);
+  const SPEED = Math.max(.1, parseFloat(qs.get('speed')) || 1);
+  const OFFSET = Math.max(0, parseFloat(qs.get('offset')) || 0);
+  const startParam = qs.get('level');
+  const s = t => t * 1000 / SPEED;     // Sekunden → ms
+
+  // ───────────────────────── Bühne skalieren ─────────────────────────
+  const stage = document.getElementById('stage');
+  function fit() {
+    const k = Math.min(innerWidth / W, innerHeight / H);
+    stage.style.transform = `translate(${(innerWidth - W * k) / 2}px, ${(innerHeight - H * k) / 2}px) scale(${k})`;
+  }
+  addEventListener('resize', fit); fit();
+
+  // Raster
+  const grid = document.getElementById('grid');
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) {
+    const i = document.createElement('i'); i.style.left = col(c) + 'px'; i.style.top = r * TH + 'px'; grid.appendChild(i);
+  }
+  if (qs.get('grid')) grid.classList.add('on');
+  addEventListener('keydown', e => { if (e.key.toLowerCase() === 'g') grid.classList.toggle('on'); });
+
+  // Fortschritt
+  const progress = document.getElementById('progress');
+  const segs = LEVELS.map(L => {
+    const d = document.createElement('div'); d.className = 'seg';
+    d.innerHTML = `<div class="fill"></div><span>Level ${L.n}</span>`;
+    progress.appendChild(d); return d;
+  });
+
+  // ───────────────────────── Animations-Werkzeug ─────────────────────────
+  const EASE_IN = 'cubic-bezier(.16,.84,.24,1)';
+  const EASE_OUT = 'cubic-bezier(.7,0,.84,0)';
+
+  /**
+   * Legt ein Text-Element an und plant Ein-/Ausblendung.
+   * o: { html|text, x, y, w, h, align:'left'|'right'|'center', valign, size, weight, cls, style,
+   *      in:[type, at, dur], out:[type, at, dur], drift:[dx, from, to], stagger }
+   */
+  function T(scene, o) {
+    const pos = document.createElement('div');
+    pos.className = 'pos' + (o.w || o.h ? ' box' : '');
+    pos.style.left = o.x + 'px';
+    pos.style.top = o.y + 'px';
+    if (o.w) pos.style.width = o.w + 'px';
+    if (o.h) pos.style.height = o.h + 'px';
+    if (o.w || o.h) {
+      pos.style.justifyContent = { left: 'flex-start', right: 'flex-end', center: 'center' }[o.align || 'left'];
+      pos.style.alignItems = { top: 'flex-start', bottom: 'flex-end', center: 'center' }[o.valign || 'top'];
+      pos.style.textAlign = o.align || 'left';
+    } else if (o.align === 'right') pos.style.transform = 'translateX(-100%)';
+    else if (o.align === 'center') pos.style.transform = 'translateX(-50%)';
+
+    const drift = document.createElement('div');
+    const mask = document.createElement('div'); mask.className = 'mask';
+    const inner = document.createElement('div');
+    inner.className = 'inner ' + (o.cls || '');
+    if (o.size) inner.style.fontSize = o.size + 'px';
+    if (o.weight) inner.style.fontWeight = o.weight;
+    if (o.style) Object.assign(inner.style, o.style);
+
+    const inType = o.in ? o.in[0] : 'none';
+    const outType = o.out ? o.out[0] : 'none';
+    const letters = inType === 'letters' || outType === 'letters';
+    if (letters) {
+      for (const c of o.text) {
+        const sp = document.createElement('span');
+        if (c === ' ') sp.className = 'sp'; else { sp.className = 'ch'; sp.textContent = c; }
+        inner.appendChild(sp);
+      }
+    } else if (o.html != null) inner.innerHTML = o.html;
+    else inner.textContent = o.text;
+
+    if (['fade', 'slideL', 'slideR', 'scale', 'none'].includes(inType) && ['fade', 'slideL', 'slideR', 'scale', 'none'].includes(outType)) {
+      mask.classList.add('free');
+    }
+    mask.appendChild(inner); drift.appendChild(mask); pos.appendChild(drift); scene.appendChild(pos);
+
+    const chars = letters ? [...inner.querySelectorAll('.ch')] : [];
+    const st = o.stagger ?? .035;
+    if (o.in) play(inner, chars, o.in, true, st);
+    if (o.out) play(inner, chars, o.out, false, st, o.align);
+    if (o.drift) {
+      const [dx, from, to] = o.drift;
+      drift.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${dx}px)` }],
+        { delay: s(from), duration: s(to - from), easing: 'linear', fill: 'both' });
+    }
+    return inner;
+  }
+
+  function play(inner, chars, [type, at, dur = .9], isIn, st, align) {
+    const opt = { delay: s(at), duration: s(dur), easing: isIn ? EASE_IN : EASE_OUT, fill: isIn ? 'both' : 'forwards' };
+    const kf = (a, b) => isIn ? [a, b] : [b, a];
+    const shown = { transform: 'none', opacity: 1 };
+    switch (type) {
+      case 'letters':
+        chars.forEach((c, i) => {
+          const k = isIn ? [{ transform: 'translateY(135%)' }, { transform: 'translateY(0)' }]
+                         : [{ transform: 'translateY(0)' }, { transform: 'translateY(-135%)' }];
+          c.animate(k, { ...opt, delay: s(at + i * st) });
+        });
+        break;
+      case 'rise':
+        inner.animate(isIn ? [{ transform: 'translateY(135%)' }, { transform: 'translateY(0)' }]
+                           : [{ transform: 'translateY(0)' }, { transform: 'translateY(-135%)' }], opt);
+        break;
+      case 'drop':
+        inner.animate(isIn ? [{ transform: 'translateY(-135%)' }, { transform: 'translateY(0)' }]
+                           : [{ transform: 'translateY(0)' }, { transform: 'translateY(135%)' }], opt);
+        break;
+      case 'wipe': {
+        const hid = isIn ? 'inset(0 100% 0 0)' : (align === 'right' ? 'inset(0 100% 0 0)' : 'inset(0 0 0 100%)');
+        const hidIn = align === 'right' ? 'inset(0 0 0 100%)' : 'inset(0 100% 0 0)';
+        inner.animate(kf({ clipPath: isIn ? hidIn : hid }, { clipPath: 'inset(0 0 0 0)' }), opt);
+        break;
+      }
+      case 'fade':
+        inner.animate(kf({ opacity: 0, transform: 'translateY(40px)' }, shown), opt); break;
+      case 'slideL':
+        inner.animate(kf({ opacity: 0, transform: 'translateX(-500px)' }, shown), opt); break;
+      case 'slideR':
+        inner.animate(kf({ opacity: 0, transform: 'translateX(500px)' }, shown), opt); break;
+      case 'scale':
+        inner.animate(kf({ opacity: 0, transform: 'scale(1.35)' }, shown), opt); break;
+    }
+  }
+
+  function rule(scene, { x, y, w, inAt, outAt, color }) {
+    const d = document.createElement('div');
+    Object.assign(d.style, { position: 'absolute', left: x + 'px', top: y + 'px', width: w + 'px', height: '6px', background: color || 'var(--accent)', transformOrigin: '0 0' });
+    scene.appendChild(d);
+    d.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { delay: s(inAt), duration: s(1.1), easing: EASE_IN, fill: 'both' });
+    d.animate([{ transform: 'scaleX(1)', transformOrigin: '100% 0' }, { transform: 'scaleX(0)', transformOrigin: '100% 0' }], { delay: s(outAt), duration: s(.7), easing: EASE_OUT, fill: 'forwards' });
+  }
+
+  // ───────────────────────── Szenen ─────────────────────────
+  function intro(scene) {
+    setAccent('#f4f2ee', 50);
+    segs.forEach(sg => sg.classList.remove('on', 'done'));
+    segs.forEach(sg => sg.querySelector('.fill').getAnimations().forEach(a => a.cancel()));
+
+    // Beat 1 – Frage
+    T(scene, { text: 'Wer fährt?', x: M, y: 0, w: W - 2 * M, h: TH, valign: 'center', size: 600, weight: 800, cls: 'display',
+      in: ['letters', .2, 1], out: ['letters', 5.2, .7], drift: [-260, .2, 6], stagger: .045 });
+    T(scene, { text: "Who's driving?", x: M, y: TH, w: W - 2 * M, h: TH, align: 'right', valign: 'center', size: 600, weight: 800,
+      cls: 'display outline', style: { '--stroke': '5px' }, in: ['letters', .7, 1], out: ['letters', 5.3, .7], drift: [260, .7, 6], stagger: .045 });
+
+    // Beat 2 – sechs Stufen
+    T(scene, { text: '0—5', x: col(0), y: 0, w: TW * 2, h: H, align: 'center', valign: 'center', size: 1500, weight: 800,
+      cls: 'display', in: ['rise', 6.2, 1.2], out: ['drop', 12.6, .8] });
+    T(scene, { text: 'SAE J3016', x: col(2) + M, y: M, size: 56, cls: 'kicker acc', in: ['rise', 6.8], out: ['rise', 12.4, .6] });
+    T(scene, { text: 'Sechs Stufen', x: col(2) + M, y: 250, size: 330, weight: 700, cls: 'display', in: ['letters', 7, .9], out: ['letters', 12.4, .6] });
+    T(scene, { text: 'des automatisierten Fahrens', x: col(2) + M, y: 560, size: 110, weight: 500, cls: 'display', in: ['rise', 7.5], out: ['rise', 12.5, .6] });
+    T(scene, { text: 'Six levels', x: col(2) + M, y: TH + M, size: 330, weight: 700, cls: 'display outline', in: ['letters', 7.6, .9], out: ['letters', 12.5, .6] });
+    T(scene, { text: 'of driving automation', x: col(2) + M, y: TH + 420, size: 110, weight: 500, cls: 'display dim', in: ['rise', 8.1], out: ['rise', 12.6, .6] });
+    return 13.6;
+  }
+
+  function levelScene(scene, L, i) {
+    setAccent(L.color, i % 2 ? 80 : 20);
+    segs.forEach((sg, k) => { sg.classList.toggle('on', k === L.n); sg.classList.toggle('done', k < L.n); });
+    const fill = segs[L.n].querySelector('.fill');
+
+    const left = i % 2 === 0;              // Beat A: Ziffer links oder rechts
+    const numA = left ? 0 : 3, numC = left ? 3 : 0;
+    const cA = left ? 1 : 0;               // erste Inhaltsspalte Beat A
+    const cC = left ? 0 : 1;               // erste Inhaltsspalte Beat C
+    const alignA = left ? 'left' : 'right';
+    const xA = left ? col(cA) + M : col(cA + 3) - M;
+    const wA = 3 * TW - 2 * M;
+
+    const A = 0, B = 6.4, C = 12.4, END = 22.6;
+    const DUR = END + .9;
+    fill.animate([{ width: '0%' }, { width: '100%' }], { duration: s(DUR), easing: 'linear', fill: 'both' });
+
+    // ── Beat A: Ziffer + Titel ──
+    T(scene, { text: String(L.n), x: col(numA), y: 0, w: TW, h: H, align: 'center', valign: 'center', size: 1720, weight: 800,
+      cls: 'display acc', style: { lineHeight: .74 }, in: ['rise', A + .1, 1.3], out: ['rise', B - .6, .8] });
+    T(scene, { text: `Level ${L.n}`, x: left ? col(numA) + M : col(numA + 1) - M, y: M - 20, align: left ? 'left' : 'right',
+      size: 52, cls: 'kicker', in: ['rise', A + .6], out: ['rise', B - .7, .5] });
+
+    T(scene, { text: L.de, x: left ? col(cA) + M : col(cA), y: 0, w: wA, h: TH - 80, align: alignA, valign: 'bottom',
+      size: 380, weight: 700, cls: 'display', in: ['letters', A + .7, .9], out: ['letters', B - .9, .6], stagger: .028,
+      drift: [left ? -120 : 120, A + .7, B] });
+    rule(scene, { x: left ? col(cA) + M : col(cA) + M, y: TH - 3, w: wA, inAt: A + .9, outAt: B - .8 });
+    T(scene, { text: L.en, x: left ? col(cA) + M : col(cA), y: TH + 80, w: wA, h: TH - 80, align: alignA, valign: 'top',
+      size: 380, weight: 700, cls: 'display outline', in: ['letters', A + 1.2, .9], out: ['letters', B - .8, .6], stagger: .028,
+      drift: [left ? 120 : -120, A + 1.2, B] });
+
+    // ── Beat B: Schlagwort, volle Breite, gegenläufig ──
+    const keyEn = L.keyEn, keyDe = L.keyDe;
+    T(scene, { text: keyEn, x: 0, y: 0, w: W, h: TH, align: 'center', valign: 'center', size: 640, weight: 800,
+      cls: 'display', in: ['letters', B, 1], out: ['letters', C - .8, .6], stagger: .05, drift: [-700, B, C] });
+    const rep = Array(6).fill(keyDe).join('  ·  ');
+    T(scene, { text: rep, x: -2400, y: TH + 40, size: 560, weight: 800, cls: 'display outline acc', style: { '--stroke': '5px' },
+      in: ['rise', B + .4, 1.1], out: ['drop', C - .7, .7], drift: [900, B + .4, C] });
+
+    // ── Beat C: Bedeutung ──
+    // Ziffer, jetzt auf der anderen Seite, als Kontur
+    T(scene, { text: String(L.n), x: col(numC), y: 0, w: TW, h: H, align: 'center', valign: 'center', size: 1720, weight: 800,
+      cls: 'display outline acc', style: { lineHeight: .74, '--stroke': '8px' }, in: ['drop', C, 1.3], out: ['drop', END, .8] });
+
+    // Spalte 1: Beschreibung DE (oben) / EN (unten)
+    const c1 = col(cC);
+    T(scene, { text: `${L.de}`, x: c1 + M, y: M, size: 44, cls: 'kicker acc', in: ['rise', C + .3], out: ['rise', END - .3, .5] });
+    T(scene, { text: L.textDe, x: c1 + M, y: M + 90, w: TW - 2 * M, size: 84, cls: 'para', in: ['fade', C + .5, 1.1], out: ['fade', END - .2, .6] });
+    T(scene, { text: L.en, x: c1 + M, y: TH + M, size: 44, cls: 'kicker dim', in: ['rise', C + .8], out: ['rise', END - .2, .5] });
+    T(scene, { text: L.textEn, x: c1 + M, y: TH + M + 90, w: TW - 2 * M, size: 84, cls: 'para dim', in: ['fade', C + 1, 1.1], out: ['fade', END - .1, .6] });
+
+    // Spalte 2: Wer fährt? (oben) / Beispiel (unten)
+    const c2 = col(cC + 1);
+    T(scene, { text: "Wer fährt? · Who's driving?", x: c2 + M, y: M, size: 44, cls: 'kicker acc', in: ['rise', C + 1.4], out: ['rise', END - .2, .5] });
+    T(scene, { text: L.driverDe, x: c2 + M, y: M + 80, size: 200, weight: 800, cls: 'display', in: ['letters', C + 1.6, .9], out: ['letters', END - .2, .6] });
+    T(scene, { text: L.driverEn, x: c2 + M, y: M + 270, size: 200, weight: 800, cls: 'display outline', in: ['letters', C + 1.9, .9], out: ['letters', END - .1, .6] });
+    T(scene, { text: L.driverNote, x: c2 + M, y: TH - M - 44, size: 44, weight: 600, cls: 'kicker dim', in: ['fade', C + 2.4], out: ['fade', END, .5] });
+
+    T(scene, { text: 'Beispiel · Example', x: c2 + M, y: TH + M, size: 44, cls: 'kicker acc', in: ['rise', C + 2.6], out: ['rise', END - .1, .5] });
+    const exDe = L.exDe.split(' · '), exEn = L.exEn.split(' · ');
+    T(scene, { html: exDe.map(t => `<div>${t}</div>`).join(''), x: c2 + M, y: TH + M + 90, size: 92, weight: 700, cls: 'display',
+      style: { lineHeight: 1.02 }, in: ['fade', C + 2.8, 1], out: ['fade', END, .5] });
+    T(scene, { html: exEn.map(t => `<div>${t}</div>`).join(''), x: c2 + M, y: TH + M + 110 + exDe.length * 94, size: 92, weight: 500, cls: 'display dim',
+      style: { lineHeight: 1.02 }, in: ['fade', C + 3.1, 1], out: ['fade', END, .5] });
+
+    // Spalte 3: Füße / Hände / Augen / Kopf – je Bildschirm zwei Zeilen
+    const c3 = col(cC + 2);
+    BODY.forEach(([de, en], k) => {
+      const busy = L.body[k];
+      const y = (k < 2 ? 0 : TH) + M - 10 + (k % 2) * 260;
+      const t0 = C + 3.4 + k * .3;
+      T(scene, { text: de, x: c3 + M, y, size: 220, weight: 800, cls: 'display' + (busy ? '' : ' outline'),
+        style: busy ? {} : { '--stroke': '3px', opacity: .55 }, in: ['letters', t0, .8], out: ['letters', END - .3 + k * .05, .6], stagger: .04 });
+      T(scene, { text: en, x: c3 + M + 6, y: y + 196, size: 40, cls: 'kicker dim', in: ['fade', t0 + .3], out: ['fade', END, .4] });
+      T(scene, { html: busy ? 'gefordert<br><span class="dim">required</span>' : 'frei<br><span class="dim">free</span>',
+        x: c3 + TW - M, y: y + 40, align: 'right', size: 64, weight: 700, cls: 'display' + (busy ? '' : ' acc'),
+        style: { lineHeight: 1.05, textAlign: 'right' }, in: ['slideR', t0 + .4, .9], out: ['fade', END, .4] });
+    });
+
+    return DUR;
+  }
+
+  function setAccent(c, gx) {
+    stage.style.setProperty('--accent', c);
+    stage.style.setProperty('--gx', gx + '%');
+  }
+
+  // ───────────────────────── Ablauf ─────────────────────────
+  const host = document.getElementById('scenes');
+  const SEQ = [{ kind: 'intro' }, ...LEVELS.map((L, i) => ({ kind: 'level', L, i }))];
+  let idx = 0;
+  if (startParam != null) {
+    const f = SEQ.findIndex(q => q.kind === 'level' && String(q.L.n) === startParam);
+    if (f >= 0) idx = f;
+  }
+
+  function next() {
+    host.querySelectorAll('.scene').forEach(o => o.remove());
+    const scene = document.createElement('div'); scene.className = 'scene'; host.appendChild(scene);
+    const q = SEQ[idx];
+    const dur = q.kind === 'intro' ? intro(scene) : levelScene(scene, q.L, q.i);
+    idx = (idx + 1) % SEQ.length;
+    setTimeout(next, s(dur));
+  }
+
+  const go = () => setTimeout(next, s(OFFSET) * SPEED);
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(go, go);
+})();
+</script>
+</body>
+</html>
