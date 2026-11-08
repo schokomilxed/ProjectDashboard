@@ -62,18 +62,3 @@ Das vollständige Schema steht in `src/baserow/schema.js`.
   Seitenabruf, Stapelverarbeitung, Wiederholung bei kurzen Ausfällen)
 - `src/baserow/setup.js` – Abgleich der Datenbank mit dem Schema
 - `npm test` – Tests gegen eine nachgebildete Baserow-API (`test/mock-baserow.js`)
-
-## Sim.Box – Idle-Modus „Level des automatisierten Fahrens“
-
-`simbox/idle-levels.html` ist eine eigenständige Seite für die beiden 4×2-Bildschirmwände
-(je 6880 × 1440 px, ein Bildschirm 1720 × 720 px). Sie zeigt nacheinander einen Einstieg
-und die Level 0–5 nach SAE J3016, jeweils deutsch und englisch, als typografische Animation
-in drei Takten: Titel mit großer Ziffer → Schlagwort über die volle Breite → Bedeutung,
-„Wer fährt?“, Beispiele und Füße/Hände/Augen/Kopf. Fließtext bleibt immer innerhalb eines
-Bildschirms, nur die große Display-Schrift läuft über die Stöße. Ein Durchlauf dauert gut 2,5 Minuten.
-
-Im Browser im Vollbild auf 6880 × 1440 öffnen; bei anderer Fenstergröße skaliert die Bühne mit.
-Parameter: `?grid=1` (Bildschirmstöße einblenden, auch Taste G), `?level=3` (Startlevel),
-`?offset=8` (Start verzögern, z. B. für die zweite Seite), `?speed=1.5`.
-Die Schrift Barlow Condensed kommt von Google Fonts; ohne Internet greift eine Systemschrift –
-für den Offline-Betrieb die Schrift lokal ablegen oder `--display`/`--text` im CSS auf die CI-Schrift setzen.
